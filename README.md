@@ -182,7 +182,7 @@ python proxy_server.py
 | API Base URL | `http://127.0.0.1:8003/v1` |
 | API Key | `config.jsonc` 中 `access_keys` 的任一值，或留空 |
 
-然后在客户端选择带后缀的模型即可（如 `claude-3-5-sonnet-memory`）。
+然后在客户端选择带后缀的模型即可（如 `claude-4-5-sonnet-memory`）。
 
 ---
 
