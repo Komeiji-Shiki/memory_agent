@@ -1,0 +1,10 @@
+{
+    "name": "bing_search",
+    "description": "Bing 搜索服务，提供网页搜索、新闻搜索、图片搜索",
+    "type": "stdio",
+    "command": "python",
+    "args": [],
+    "env": {
+        "BING_API_KEY": ""
+    }
+}

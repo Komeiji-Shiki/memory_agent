@@ -1,0 +1,14 @@
+{
+    "name": "memory",
+    "description": "知识图谱记忆服务器 - 让AI能够跨对话记住用户信息",
+    "version": "1.0.0",
+    "type": "stdio",
+    "command": "npx.cmd",
+    "args": [
+        "-y",
+        "@modelcontextprotocol/server-memory"
+    ],
+    "env": {
+        "MEMORY_FILE": "memory.jsonl"
+    }
+}

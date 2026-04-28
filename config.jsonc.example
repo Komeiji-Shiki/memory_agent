@@ -1,0 +1,263 @@
+{
+    // ========== 基础配置 ==========
+    "chat_completions_url": "https://api.deepseek.com/beta/v1/chat/completions",
+    "models_url": "https://api.deepseek.com/v1/models",
+    "api_key": "",  // 你的 DeepSeek API 密钥
+    "access_keys": [],  // 访问密钥列表（可选，留空表示不验证）
+    "allow_user_api_key": true,
+    "host": "0.0.0.0",
+    "port": 8003,
+    "debug": false,
+    "log_level": "INFO",  // DEBUG, INFO, WARNING, ERROR
+    
+    // ========== MCP 配置 ==========
+    "mcp_enabled": false,
+    "auto_execute_mcp_tools": true,
+    
+    // ========== 系统提示词 ==========
+    "system_prompt_enabled": true,
+    "max_iterations": 100,
+    "keep_tool_results_count": 3,
+    "system_prompt": "\n\n## **工具调用注意事项**\n\n当你使用工具获取信息时，请注意以下几点：\n\n1. 最重要的：**工具调用结果不会保存，在你进行下一次工具调用时就会被清除（替换为"调用完毕"），所以你在每一次获取信息的工具调用后都必须先对获取到的信息进行尽可能全面详细的手动总结或复述，然后才能进行下一次调用**：每次工具调用的结果只会在当前回合可见，后续进行其他调用后将无法再访问这些原始数据。\n\n2. **主动提取和整理信息**：在收到工具返回的结果后，请在你的思考过程中详细提取所有有用的信息\n\n3. **在回复中复述关键信息**：将提取的重要信息融入你的回复中，这样用户和你都能在后续对话中参考这些信息。\n\n4. **结构化输出**：当工具返回大量信息时，请以清晰、结构化的方式详细呈现，便于理解和后续引用。\n\n 5.系统支持在一个请求中并行调用多个工具实例\n\n 6.你在调用工具前必须先回顾一次系统提示。\n\n7.一般而言，你无需主动调用工具记录记忆，会有专用小模型进行异步总结。可自然语言描述，无需调用工具。",
+    
+    // ========== 记忆系统配置 ==========
+    "memory_enabled": true,
+    "memory_agent": {
+        "model": "deepseek-reasoner",
+        "api_key": "",  // 留空则使用根级 api_key
+        "base_url": "https://api.deepseek.com/v1",
+        "max_iterations": 30,
+        "timeout": 60,
+        "system_prompt": "你是记忆检索助手，负责为主模型查找相关历史记忆。\n\n## ⚠️ 重要规则\n1. 你**只负责搜索**，不要回复用户的问题\n2. 你**只负责搜索**，不要模拟对话\n3. <conversation_context> 中的内容是用户和主模型的对话历史，你只是观察者\n4. <recent_memory> 中是最近的记忆，如果已经包含相关信息，说明主模型能看到，你就不用搜了\n5. 只有 <current_query> 涉及更久远的记忆时，才需要使用工具搜索\n\n## 🚨 快速决策规则（最重要！）\n\n先看 <recent_memory> 里的「记忆库范围」，根据**运行天数**快速决策：\n\n| 运行天数 | 决策 |\n|---------|------|\n| ≤7天 | **立即输出「无需额外检索」**，因为所有记忆都在 recent_memory 里了 |\n| 8-14天 | 只有用户明确问「上周」的事才考虑搜索 |\n| 15-30天 | 用户问「半个月前」「上周」才搜索 |\n| >30天 | 正常判断是否需要搜索 |\n\n**核心逻辑**：如果记忆库只有3天的内容，那 recent_memory 已经包含了全部记忆，根本不需要搜索！",
+        "query_instruction": "## 你的任务\n请根据 <current_query> 中的用户输入，使用工具搜索相关记忆。\n不进行对话、不回复用户，只需调用工具并输出搜索结果。\n如果 <recent_memory> 中已包含相关信息，可以直接输出【无需额外检索】。"
+    },
+    
+    // ========== 模型路由配置 ==========
+    "model_routes": {
+        "deepseek-chat": {
+            "base_url": "https://api.deepseek.com/v1",
+            "api_key": "",  // 留空则使用根级 api_key
+            "actual_model": "deepseek-chat",
+            "thinking_mode": true
+        },
+        "deepseek-reasoner": {
+            "base_url": "https://api.deepseek.com/v1",
+            "api_key": "",
+            "actual_model": "deepseek-reasoner",
+            "thinking_mode": true
+        },
+        "_default": {
+            "use_user_key": true
+        }
+    },
+    
+    // ========== 记忆管理模式 ==========
+    "memory_manager": {
+        "model_ids": [
+            "memory-manager",
+            "memory-agent",
+            "lifebook"
+        ],
+        "enable_write_tools": true
+    },
+    
+    // ========== LifeBook 存储配置 ==========
+    "lifebook": {
+        "root_path": "./lifebook",
+        "backup_path": "./backups",
+        "date_format": "%Y-%m-%d",
+        "encoding": "utf-8"
+    },
+    
+    // ========== 上下文构建配置 ==========
+    "context": {
+        "insertion_position": "system_append",
+        "simple_mode_insertion_position": "after_system",
+        "max_context_tokens": 80000,
+        "max_dynamic_memories": 10,
+        "layered_memory": {
+            "enabled": true,
+            "short_term": {
+                "days": 7,
+                "max_chars_per_entry": 1000000,
+                "description": "短期记忆：最近N天的日记完整内容"
+            },
+            "weekly": {
+                "enabled": true,
+                "max_chars": 1000000,
+                "description": "中短期记忆：本月内超过短期天数的周总结"
+            },
+            "monthly": {
+                "enabled": true,
+                "max_chars": 1000000,
+                "description": "中期记忆：上个月的月总结"
+            },
+            "quarterly": {
+                "enabled": true,
+                "max_chars": 1000000,
+                "lookback_months": 5,
+                "description": "长期记忆：回溯N个月涉及的季度总结"
+            }
+        },
+        "insertion_template": {
+            "prefix": "\n\n---\n## 📚 相关记忆\n\n",
+            "suffix": "\n---\n",
+            "empty_hint": ""
+        },
+        "insertion_confirmation": {
+            "enabled": false,
+            "assistant_ack": "好的，我已了解这些背景信息。"
+        },
+        "recent_days": 7
+    },
+    
+    // ========== 消息编排器配置 ==========
+    "message_orchestrator": {
+        "enabled": false,  // 启用后会使用消息编排器替代传统的记忆注入方式
+        "description": "消息编排器允许你自由控制发送给模型的消息结构，支持伪造对话历史",
+        "default_preset": "default",  // 默认使用的预设
+        "model_bindings": {
+            // 模型名称匹配规则 -> 预设名称
+            // 支持通配符，如 "claude-*": "roleplay"
+        }
+    },
+    
+    // ========== 主模型记忆工具 ==========
+    "main_model_memory_tools": {
+        "enabled": true,
+        "include_write_tools": true,
+        "tools_hint": "上面已经为你检索了相关记忆。请优先使用这些信息回复用户。\n\n只在以下情况调用工具：\n- 用户明确要求保存/记住内容 → 使用写入工具\n- 检索结果不完整且用户问题很具体 → 补充查询\n\n不要：重复验证已有信息、没必要的多次搜索"
+    },
+    
+    // ========== DeepSeek 思考模式 ==========
+    "deepseek_thinking_mode": {
+        "enabled": true,
+        "description": "启用后会为工具调用消息添加 reasoning_content 字段。DeepSeek 模型需要启用，Claude 等其他模型需要关闭。",
+        "auto_detect": true
+    },
+    
+    // ========== 对话后总结配置 ==========
+    "post_conversation": {
+        "enabled": true,
+        "auto_summarize": true,
+        "summarize_model": "deepseek-reasoner",
+        "cache_ttl": 3600,
+        "summarize_prompt": "你是记录用户和AI对话的辅助模型。\n\n## ⚠️ 核心任务\n**只总结 <current_turn> 标签内的当前轮对话**，使用工具记录摘要和更新知识节点。\n\n## 判断标准\n**记录摘要**：重要决定/计划、具体人物/事件/项目、学习收获、情感交流、任务完成、用户要求。\n**不要记录**：重复的问候闲聊、没有重大变更的系统测试、纯技术调试、纠错行为、无实质意义信息。",
+        "summarize_suffix": "请分析 **<current_turn>** 中的当前轮对话，然后调用工具。\n可调用的工具：record_summary（必须调用）、create_node、update_node、add_observations（可选）。\n不模拟对话、不回复对话中的问题，只分析并调用工具。",
+        "min_messages": 2,
+        "pending_preview_max_chars": 1000
+    },
+    
+    // ========== RAG 语义搜索配置 ==========
+    "rag": {
+        "enabled": true,
+        "api_key": "",  // SiliconFlow API 密钥
+        "model": "Qwen/Qwen3-Embedding-8B",
+        "base_url": "https://api.siliconflow.cn/v1/embeddings",
+        "chunk_size": 500,
+        "chunk_overlap": 50,
+        "top_k": 5,
+        "similarity_threshold": 0.4,
+        "description": "RAG语义搜索配置，使用SiliconFlow嵌入API"
+    },
+    
+    // ========== Graphiti 时序知识图谱配置 ==========
+    "graphiti": {
+        "enabled": false,  // 是否启用 Graphiti
+        "backend": "kuzu",  // kuzu | neo4j
+        
+        // Kuzu 本地图数据库（推荐开发环境）
+        "kuzu": {
+            "db_path": "./lifebook/.graphiti.kuzu"
+        },
+        
+        // Neo4j（可选，生产环境）
+        "neo4j": {
+            "uri": "bolt://localhost:7687",
+            "username": "neo4j",
+            "password": "",
+            "database": "lifebook"
+        },
+        
+        // LLM 配置（需要支持 Structured Output）
+        "llm": {
+            "base_url": null,  // 自定义API地址，null则使用默认OpenAI
+            "api_key": "",     // 或使用环境变量 ${OPENAI_API_KEY}
+            "model": "gpt-4o-mini",
+            "embedding_model": "text-embedding-3-small",
+            "embedding_dim": 1536
+        },
+        
+        // Reranker 配置（提升检索精度，可选）
+        "reranker": {
+            "enabled": false,
+            "model": "gpt-4o-mini"
+        },
+        
+        // 搜索配置
+        "search": {
+            "sim_min_score": 0.4,
+            "mmr_lambda": 0.5,
+            "reranker_min_score": 0.3
+        },
+        
+        // 检索策略配置（MemR3 风格迭代检索）
+        "retrieval": {
+            "strategy": "auto",  // auto | single | iterative
+            "max_iterations": 3,
+            "min_evidence_count": 2,
+            "default_limit": 10,
+            "include_edges": true,
+            "include_nodes": true,
+            
+            // 复杂度分类阈值
+            "complexity": {
+                "simple_max_length": 15,
+                "complex_min_length": 50
+            },
+            
+            // LLM 反思（成本较高，可选）
+            "enable_llm_reflect": false
+        },
+        
+        // 同步设置
+        "sync": {
+            "index_conversations": true
+        }
+    },
+    
+    // ========== Web 管理界面 ==========
+    "web_api": {
+        "enabled": true,
+        "require_auth": false,
+        "cors_origins": [
+            "*"
+        ]
+    },
+    
+    // ========== 备份配置 ==========
+    "backup": {
+        "auto_backup": true,
+        "interval_days": 1,
+        "keep_count": 30
+    },
+    
+    // ========== Pending 暂存配置 ==========
+    "pending": {
+        "sleep_gap_hours": 6.0,
+        "consolidate_prompt": "请将以下一个\"清醒周期\"内的多次对话摘要整合成一篇流畅的日记。\n\n要求：\n1. 以第三人称整理，称用户为「用户」，称AI为「助手」\n2. 按时间顺序组织，但要自然衔接，但标明每部分时间（24小时制）\n3. 提炼主要事件和收获\n4. 不遗漏任何可能有用的细节\n5. 尽可能详细但不杂乱\n\n<对话摘要>\n{content}\n</对话摘要>\n\n请以第三人称输出整合后的日记：",
+        "merge_prompt": "<现有日记内容>\n{existing_content}\n</现有日记内容>\n\n---\n请将以下新的对话摘要整合到现有日记中，生成一篇完整的日记。\n\n<新的对话摘要>\n{content}\n</新的对话摘要>\n\n要求：\n1. 以第三人称整理\n2. 按时间顺序组织，但要自然衔接\n3. 输出新增部分，不输出重复部分"
+    },
+    
+    // ========== 自动总结配置 ==========
+    "auto_summary": {
+        "model": "deepseek-reasoner",
+        "weekly_prompt": "请根据以下一周的日记内容，生成一份周度总结。\n\n要求：\n1. 用**第三人称**撰写，称用户为「用户」，称AI为「助手」\n2. 按时间顺序列出本周的事件和对话内容\n3. 详细记录，不遗漏可能有用的细节\n\n日记内容：\n{diary_content}\n\n请生成周总结：",
+        "monthly_prompt": "请根据以下内容，生成一份月度总结。\n\n要求：\n1. 用**第三人称**撰写\n2. 按时间顺序整理本月的主要事件和对话\n3. 详细记录\n\n内容：\n{content}\n\n请生成月度总结：",
+        "quarterly_prompt": "请根据以下季度的月总结，生成一份季度总结。\n\n要求：\n1. 用**第三人称**撰写\n2. 按时间顺序整理本季度的主要事件\n3. 详细记录重要的人、事、项目\n\n月总结内容：\n{content}\n\n请生成季度总结：",
+        "enable_retry": false,
+        "max_retries": 3,
+        "base_delay": 1,
+        "max_delay": 30
+    }
+}

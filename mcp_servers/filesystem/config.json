@@ -1,0 +1,13 @@
+{
+  "name": "filesystem",
+  "description": "参考 Kilo Code 重写的文件系统 MCP 服务，提供可配置路径沙箱、ignore 规则、流式读取、目录遍历、内容编辑、patch 应用与文件操作能力",
+  "version": "2.1.0",
+  "type": "stdio",
+  "command": "python",
+  "args": [],
+  "env": {
+    "PYTHONIOENCODING": "utf-8",
+    "PYTHONUNBUFFERED": "1",
+    "FS_ALLOW_OUTSIDE_WORKSPACE": "1"
+  }
+}

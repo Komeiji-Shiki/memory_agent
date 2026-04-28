@@ -1,0 +1,17 @@
+{
+    "name": "cmd",
+    "description": "带安全分析、审计日志和少量 critical 命令硬阻断的 Windows CMD MCP 服务",
+    "version": "2.0.0",
+    "type": "stdio",
+    "command": "python",
+    "args": [],
+    "env": {
+        "PYTHONIOENCODING": "utf-8",
+        "PYTHONUNBUFFERED": "1",
+        "CMD_POLICY_MODE": "balanced",
+        "CMD_ALLOW_NETWORK": "1",
+        "CMD_ALLOW_SHELL_OPERATORS": "1",
+        "CMD_ALLOW_PIPES": "1",
+        "CMD_ALLOW_REDIRECTION": "1"
+    }
+}

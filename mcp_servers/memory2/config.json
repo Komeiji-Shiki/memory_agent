@@ -1,0 +1,13 @@
+{
+  "name": "memory2",
+  "description": "本地源码版知识图谱记忆服务器",
+  "version": "1.0.0",
+  "type": "stdio",
+  "command": "node",
+  "args": [
+    "mcp_servers/memory2/dist/index.js"
+  ],
+  "env": {
+    "MEMORY_FILE_PATH": "mcp_servers/memory2/memory.jsonl"
+  }
+}

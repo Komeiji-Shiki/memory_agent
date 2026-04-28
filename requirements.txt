@@ -1,0 +1,30 @@
+# LifeBook Memory Agent Dependencies
+# Install with: pip install -r requirements.txt
+
+# Web Framework
+flask>=3.0.0
+flask-cors>=4.0.0
+
+# HTTP Client
+requests>=2.31.0
+aiohttp>=3.9.1
+
+# Chinese Word Segmentation
+jieba>=0.42.1
+
+# YAML Parser
+pyyaml>=6.0.1
+
+# OpenAI Compatible Client
+openai>=1.6.1
+
+# Optional: File Lock (multi-process safety)
+filelock>=3.13.1
+
+graphiti-core>=0.17.0
+
+kuzu>=0.11.2
+
+pydantic>=2.0
+
+python-dateutil>=2.8

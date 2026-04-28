@@ -1,0 +1,20 @@
+{
+    "name": "duckduckgo_search",
+    "description": "DuckDuckGo 网页搜索服务",
+    "version": "1.0.0",
+    "type": "stdio",
+    "command": "python",
+    "args": [
+        "-c",
+        "import ddg_mcp; ddg_mcp.main()"
+    ],
+    "env": {
+        "PYTHONPATH": "mcp_servers/ddg-mcp/src"
+    },
+    "tools": [
+        {
+            "name": "search",
+            "description": "使用 DuckDuckGo 搜索引擎搜索网页内容"
+        }
+    ]
+}

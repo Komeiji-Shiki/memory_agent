@@ -1,0 +1,114 @@
+# =========================
+# LifeBook Memory Agent .gitignore
+# =========================
+
+# ===== 🚨 敏感数据 —— 绝对不要提交！=====
+
+# 真实配置文件（含 API Key）
+config.jsonc
+
+# 个人记忆数据（日记/节点/对话/总结/图谱/索引）
+/lifebook/
+
+# MCP 配置文件（含 API Key —— 只排除有敏感信息的）
+mcp_servers/tavily-mcp/config.json
+mcp_servers/baidu_search/config.json
+mcp_servers/baidu_ai_search/config.json
+mcp_servers/memory_enhanced/config.json
+mcp_servers/standalone_memory/config.json
+mcp_servers/bing_search/config.json
+mcp_servers/google_search/config.json
+
+# 日志文件（可能含请求内容）
+proxy_server.log*
+.mcp_cmd_audit.jsonl
+
+# 调试脚本（可能含硬编码敏感信息）
+debug_*.py
+_test_*.py
+
+# 个人脚本
+/life
+
+# 临时验证目录
+/tmp_mcp_verify*/
+
+# ===== 第三方项目（不提交）=====
+/graphiti-main/
+/memr3-main/
+/fast-tavern-main/
+
+# ===== Node modules =====
+node_modules/
+
+# ===== 压缩包 =====
+*.zip
+*.rar
+*.7z
+
+# ===== MCP 数据文件 =====
+mcp_servers/memory2/memory.jsonl
+mcp_servers/memory2/*.embeddings.*
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ===== 虚拟环境 =====
+venv/
+ENV/
+env/
+.venv/
+
+# ===== IDE/编辑器 =====
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# ===== 日志和临时文件 =====
+*.log
+*.tmp
+*.temp
+.cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ===== 数据库文件 =====
+*.db
+*.db-shm
+*.db-wal
+
+# ===== 系统文件 =====
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== 无关目录 =====
+kilocode-main/
+
+# ===== 备份文件 =====
+backups/*.zip

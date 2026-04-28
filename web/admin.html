@@ -1,0 +1,1896 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LifeBook Memory Agent - 管理面板</title>
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <!-- vis-network 图谱可视化库 -->
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <!-- Sortable.js 拖拽排序库 -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1>📚 LifeBook</h1>
+                <p>Memory Agent 管理面板</p>
+            </div>
+            
+            <!-- 状态小框 -->
+            <div class="status-widget">
+                <div class="status-widget-header">
+                    <span class="status-widget-label">💾 记忆库状态</span>
+                    <button onclick="refreshStats()" style="background: none; border: none; cursor: pointer; color: var(--text-dim); font-size: 0.7rem;">🔄</button>
+                </div>
+                <div id="memory-status" class="status-widget-value">加载中...</div>
+                <div style="font-size: 0.65rem; color: var(--text-dim); margin-top: 4px;">
+                    <span id="last-interaction">--</span>
+                </div>
+            </div>
+            
+            <ul class="nav-menu">
+                <li class="nav-item active" data-page="overview">
+                    <i>📊</i> 概览
+                </li>
+                <li class="nav-item" data-page="config">
+                    <i>⚙️</i> 配置设置
+                </li>
+                <li class="nav-item" data-page="models">
+                    <i>🤖</i> 模型路由
+                </li>
+                <li class="nav-item" data-page="memory">
+                    <i>🧠</i> 记忆管理
+                </li>
+                <li class="nav-item" data-page="backup">
+                    <i>💾</i> 备份恢复
+                </li>
+                <li class="nav-item" data-page="summary">
+                    <i>📝</i> 总结生成
+                </li>
+                <li class="nav-item" data-page="rag">
+                    <i>🔮</i> RAG 语义搜索
+                </li>
+                <li class="nav-item" data-page="graph">
+                    <i>🕸️</i> 知识图谱
+                </li>
+                <li class="nav-item" data-page="graphiti">
+                    <i>🔗</i> Graphiti 图谱
+                </li>
+                <li class="nav-item" data-page="extra">
+                    <i>📎</i> 额外挂载
+                </li>
+                <li class="nav-item" data-page="orchestrator">
+                    <i>📝</i> 消息编排
+                </li>
+                <li class="nav-item" data-page="conversations">
+                    <i>💬</i> 对话管理
+                </li>
+                <li class="nav-item" data-page="debug">
+                    <i>🔧</i> 调试日志
+                </li>
+            </ul>
+        </div>
+
+        <!-- 主内容区 -->
+        <div class="main-content">
+            <!-- 概览页面 -->
+            <div id="overview" class="page active">
+                <div class="page-header">
+                    <h2>系统概览</h2>
+                    <p>LifeBook Memory Agent 运行状态</p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-card-label">📅 日记数量</div>
+                        <div class="stat-card-value" id="stat-diaries">--</div>
+                        <div class="stat-card-detail">条记录</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-label">🏷️ 标签数量</div>
+                        <div class="stat-card-value" id="stat-tags">--</div>
+                        <div class="stat-card-detail">个标签</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-label">📦 节点数量</div>
+                        <div class="stat-card-value" id="stat-people">--</div>
+                        <div class="stat-card-detail">个节点</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-label">💬 交互次数</div>
+                        <div class="stat-card-value" id="stat-interactions">--</div>
+                        <div class="stat-card-detail">次对话</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-label">🔗 Graphiti 状态</div>
+                        <div class="stat-card-value" id="stat-graphiti">--</div>
+                        <div class="stat-card-detail" id="stat-graphiti-detail">未启用</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>快速使用</h3>
+                    </div>
+                    <div class="alert alert-info">
+                        <span>ℹ️</span>
+                        <div>
+                            <strong>使用方式：</strong>
+                            <ul style="margin-top: 10px; padding-left: 20px;">
+                                <li><code style="background: var(--surface-2); padding: 2px 6px; border-radius: 3px;">gemini-claude-sonnet-4-5-thinking-memory</code> - 记忆增强模式</li>
+                                <li><code style="background: var(--surface-2); padding: 2px 6px; border-radius: 3px;">memory-manager</code> - 记忆管理模式</li>
+                                <li><code style="background: var(--surface-2); padding: 2px 6px; border-radius: 3px;">gemini-claude-sonnet-4-5-thinking</code> - 直接透传</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>可用模型</h3>
+                        <button class="btn btn-sm btn-primary" onclick="refreshModels()">🔄 刷新</button>
+                    </div>
+                    <div id="available-models">
+                        <div class="loading"><span class="spinner"></span> 加载中...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 配置设置页面 -->
+            <div id="config" class="page">
+                <div class="page-header">
+                    <h2>配置设置</h2>
+                    <p>编辑系统配置</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>基本设置</h3>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">主 API Key (DeepSeek)</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="password" id="cfg-api-key" class="form-input" placeholder="sk-..." style="flex: 1;" data-reveal-endpoint="/config" data-reveal-path="config.api_key">
+                            <button class="btn btn-sm" onclick="togglePassword('cfg-api-key')">👁️</button>
+                        </div>
+                        <div class="form-hint">用于记忆Agent（deepseek-reasoner）和默认请求</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">最大重试次数 (Max Retries)</label>
+                        <input type="number" id="cfg-max-retries" class="form-input" value="0" min="0" max="10">
+                        <div class="form-hint">LLM 调用失败时的重试次数，设为 0 表示不重试。</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">监听端口</label>
+                        <input type="number" id="cfg-port" class="form-input" value="8003">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">监听地址</label>
+                        <select id="cfg-host" class="form-select">
+                            <option value="127.0.0.1">127.0.0.1 (仅本机)</option>
+                            <option value="0.0.0.0" selected>0.0.0.0 (允许局域网)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="cfg-memory-enabled" checked style="margin-right: 8px;">
+                            启用记忆增强功能
+                        </label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="cfg-mcp-enabled" style="margin-right: 8px;">
+                            启用MCP功能（记忆模式下自动禁用）
+                        </label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">日志级别</label>
+                        <select id="cfg-log-level" class="form-select">
+                            <option value="DEBUG">DEBUG - 详细调试信息</option>
+                            <option value="INFO" selected>INFO - 重要状态变更</option>
+                            <option value="WARNING">WARNING - 警告信息</option>
+                            <option value="ERROR">ERROR - 仅错误信息</option>
+                        </select>
+                        <div class="form-hint">控制控制台和日志文件输出的详细程度，重启后生效</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>🧠 DeepSeek Thinking 模式</h3>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <span>💡</span>
+                        <div>
+                            DeepSeek 模型需要在工具调用消息中包含 <code>reasoning_content</code> 字段。<br>
+                            但 Claude 等其他模型不支持此字段，会导致报错。<br>
+                            建议启用<strong>自动检测</strong>，系统会根据模型名称自动判断。
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="cfg-thinking-enabled" checked style="margin-right: 8px;">
+                            启用 Thinking 模式
+                        </label>
+                        <div class="form-hint">为工具调用消息添加 reasoning_content 字段</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="cfg-thinking-auto" checked style="margin-right: 8px;">
+                            自动检测模型类型
+                        </label>
+                        <div class="form-hint">只对 DeepSeek/Reasoner 模型添加此字段（推荐）</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>记忆Agent设置</h3>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Agent模型</label>
+                        <input type="text" id="cfg-agent-model" class="form-input" value="deepseek-reasoner">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Agent API 地址</label>
+                        <input type="text" id="cfg-agent-url" class="form-input" value="https://api.deepseek.com/v1">
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div class="form-group">
+                            <label class="form-label">Agent API Key (可选)</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="password" id="cfg-agent-key" class="form-input" placeholder="留空则使用主Key" style="flex: 1;" data-reveal-endpoint="/config" data-reveal-path="config.memory_agent.api_key">
+                                <button class="btn btn-sm" onclick="togglePassword('cfg-agent-key')">👁️</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">最大迭代 / 超时(s)</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="number" id="cfg-agent-max-iter" class="form-input" value="30" title="最大迭代步数">
+                                <input type="number" id="cfg-agent-timeout" class="form-input" value="60" title="超时秒数">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Agent 系统提示词 (System Prompt)</label>
+                        <textarea id="cfg-agent-prompt" class="form-input" style="min-height: 150px;" placeholder="你是记忆检索助手..."></textarea>
+                        <div class="form-hint">Agent 负责执行具体的 search_memories 检索任务，它的提示词决定了检索质量。</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">查询指示 (Query Instruction)</label>
+                        <textarea id="cfg-agent-query-instruction" class="form-input" style="min-height: 100px;" placeholder="附加在每次查询时的指示..."></textarea>
+                        <div class="form-hint">每次调用Agent时，会在用户查询前附加此指示，用于引导Agent的搜索行为。</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>上下文设置</h3>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">记忆插入位置</label>
+                        <select id="cfg-insertion-position" class="form-select">
+                            <option value="system_prepend">系统提示词最前面</option>
+                            <option value="system_append" selected>系统提示词末尾（推荐）</option>
+                            <option value="after_system">系统消息后独立插入</option>
+                            <option value="before_last_user">最后用户消息前</option>
+                            <option value="replace_system">替换系统提示</option>
+                        </select>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                        <div class="form-group">
+                            <label class="form-label">最近日记天数</label>
+                            <input type="number" id="cfg-recent-days" class="form-input" value="7">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">最大上下文 Token</label>
+                            <input type="number" id="cfg-max-context-tokens" class="form-input" value="8000">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">工具结果保留数</label>
+                            <input type="number" id="cfg-keep-tool-results" class="form-input" value="3">
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 15px;">
+                        <div class="form-group">
+                            <label class="form-label">
+                                <input type="checkbox" id="cfg-main-model-tools" checked style="margin-right: 8px;">
+                                允许主模型调用记忆工具
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">
+                                <input type="checkbox" id="cfg-main-model-write" checked style="margin-right: 8px;">
+                                允许主模型写入记忆
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">
+                                <input type="checkbox" id="cfg-layer-enabled" checked style="margin-right: 8px;">
+                                启用分层记忆过滤
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">给主模型的工具调用建议 (Tools Hint)</label>
+                        <textarea id="cfg-main-tools-hint" class="form-input" style="min-height: 80px;" placeholder="上面已经为你检索了相关记忆..."></textarea>
+                        <div class="form-hint">这段话会追加到系统提示词末尾，告诉主模型何时该动用记忆工具。</div>
+                    </div>
+
+                    <h4 style="margin: 20px 0 10px; color: var(--accent);">📌 自定义内容插入</h4>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="cfg-custom-content-enabled" style="margin-right: 8px;">
+                            启用自定义内容插入
+                        </label>
+                        <div class="form-hint">在记忆内容后面插入自定义文本（角色设定、特殊指令等）</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">自定义内容</label>
+                        <textarea id="cfg-custom-content" class="form-input" style="min-height: 120px;" placeholder="在这里输入想要插入的内容..."></textarea>
+                        <div class="form-hint">这段内容会以「📌 附加说明」的形式追加在记忆内容之后</div>
+                    </div>
+
+                    <h4 style="margin: 20px 0 10px; color: var(--accent);"> 分层记忆截断 (字符数)</h4>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
+                        <div class="form-group">
+                            <label class="form-label">单条日记</label>
+                            <input type="number" id="cfg-max-chars-diary" class="form-input" value="3000">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">周总结</label>
+                            <input type="number" id="cfg-max-chars-weekly" class="form-input" value="1500">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">月总结</label>
+                            <input type="number" id="cfg-max-chars-monthly" class="form-input" value="2000">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">季度总结</label>
+                            <input type="number" id="cfg-max-chars-quarterly" class="form-input" value="2500">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>📝 对话后总结 (自动记日记)</h3>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="cfg-post-enabled" checked style="margin-right: 8px;">
+                            启用对话总结功能
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="cfg-post-auto" checked style="margin-right: 8px;">
+                            对话后自动生成摘要并暂存 (Pending)
+                        </label>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                        <div class="form-group">
+                            <label class="form-label">总结模型</label>
+                            <input type="text" id="cfg-post-model" class="form-input" value="deepseek-chat">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">最小触发消息数</label>
+                            <input type="number" id="cfg-post-min-msgs" class="form-input" value="2">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Pending 预览字数限制</label>
+                            <input type="number" id="cfg-post-pending-max" class="form-input" value="200">
+                        </div>
+                    </div>
+                    
+                    <!-- 高级 LLM 参数设置 -->
+                    <div class="collapsible" style="margin-top: 15px;">
+                        <div class="collapsible-header" onclick="toggleCollapsible(this.parentElement)">
+                            <span>⚙️ 高级 LLM 参数</span>
+                            <span class="collapsible-toggle">▼</span>
+                        </div>
+                        <div class="collapsible-content">
+                            <div class="alert alert-info" style="margin-bottom: 15px;">
+                                <span>💡</span>
+                                <div>
+                                    这些参数控制总结模型的输出行为。<br>
+                                    <strong>max_tokens</strong>：限制输出长度 | <strong>temperature</strong>：0=确定性，1=创造性 | <strong>top_p</strong>：核采样参数
+                                </div>
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
+                                <div class="form-group">
+                                    <label class="form-label">Max Tokens (普通模型)</label>
+                                    <input type="number" id="cfg-post-max-tokens-normal" class="form-input" value="1500" min="100" max="16000">
+                                    <div class="form-hint">非 Reasoner 模型</div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Max Tokens (Reasoner)</label>
+                                    <input type="number" id="cfg-post-max-tokens-reasoner" class="form-input" value="3000" min="100" max="32000">
+                                    <div class="form-hint">Reasoner 模型</div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Temperature</label>
+                                    <input type="number" id="cfg-post-temperature" class="form-input" value="0.3" step="0.1" min="0" max="2">
+                                    <div class="form-hint">0~2，默认 0.3</div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Top P</label>
+                                    <input type="number" id="cfg-post-top-p" class="form-input" placeholder="留空不设置" step="0.1" min="0" max="1">
+                                    <div class="form-hint">0~1，可选</div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">最大上下文字符数</label>
+                                <input type="number" id="cfg-post-max-context-chars" class="form-input" value="100000" min="10000" max="500000" style="width: 200px;">
+                                <div class="form-hint">对话内容超过此长度时会被截断，默认 100000</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-top: 15px;">
+                        <div class="form-group">
+                            <label class="form-label">总结 Base URL（可选）</label>
+                            <input type="text" id="cfg-post-url" class="form-input" placeholder="https://api.deepseek.com/v1（留空=跟随模型路由/Agent）">
+                            <div class="form-hint">仅影响“对话后总结”模型调用，不影响正常对话。</div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">总结 API Key（可选）</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="password" id="cfg-post-key" class="form-input" placeholder="留空=跟随模型路由/Agent" style="flex: 1;" data-reveal-endpoint="/config" data-reveal-path="config.post_conversation.api_key">
+                                <button class="btn btn-sm" onclick="togglePassword('cfg-post-key')">显示</button>
+                            </div>
+                            <div class="form-hint">留空时：优先使用 model_routes[总结模型] 的 api_key/base_url；否则回退到 Agent/主 Key。</div>
+                        </div>
+                    </div>
+
+<div class="form-group">
+                        <label class="form-label">总结提示词 (Prompt)</label>
+                        <textarea id="cfg-post-prompt" class="form-input" style="min-height: 150px;" placeholder="不填则使用系统默认"></textarea>
+                        <div class="form-hint">主提示词，用于指导总结模型如何分析对话</div>
+                    </div>
+                    <div class="form-group">
+                            <label class="form-label">对话后额外提示 (Suffix)</label>
+                            <textarea id="cfg-post-suffix" class="form-input" style="min-height: 80px;" placeholder="请分析上述对话内容，然后调用 record_summary 工具..."></textarea>
+                            <div class="form-hint">追加在对话内容后的提示，用于强调"分析当前对话"并调用工具。无法在设置界面修改系统默认值。</div>
+                        </div>
+                    </div>
+    
+                    <!-- 对话保留机制 -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>💬 对话保留机制</h3>
+                        </div>
+                        
+                        <div class="alert alert-info" style="margin-bottom: 15px;">
+                            <span>💡</span>
+                            <div>
+                                对话保留机制会将原始对话完整保存到 <code>lifebook/conversations/</code> 目录，<br>
+                                用于日记生成重试、对话历史查阅、Graphiti 索引。
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">
+                                <input type="checkbox" id="cfg-conv-enabled" checked style="margin-right: 8px;">
+                                启用原始对话保留
+                            </label>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                            <div class="form-group">
+                                <label class="form-label">会话超时（分钟）</label>
+                                <input type="number" id="cfg-conv-timeout" class="form-input" value="30" min="5" max="120">
+                                <div class="form-hint">超过此时间无新消息则视为新会话</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">前缀匹配阈值</label>
+                                <input type="number" id="cfg-conv-threshold" class="form-input" value="0.7" step="0.1" min="0.5" max="1">
+                                <div class="form-hint">用于判断是否是续写</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">单文件最大轮次</label>
+                                <input type="number" id="cfg-conv-max-turns" class="form-input" value="100" min="10" max="500">
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 10px;">
+                            <button class="btn btn-success btn-sm" onclick="saveConversationLoggerConfig()">💾 保存对话保留设置</button>
+                        </div>
+                    </div>
+    
+                    <div style="display: flex; gap: 10px; margin-bottom: 40px;">
+                    <button class="btn btn-primary" onclick="loadConfig()">🔄 重新加载</button>
+                    <button class="btn btn-success" onclick="saveConfig()">💾 保存配置</button>
+                </div>
+            </div>
+
+            <!-- 模型路由页面 -->
+            <div id="models" class="page">
+                <div class="page-header">
+                    <h2>🤖 模型路由</h2>
+                    <p>配置模型到后端API的映射，支持记忆增强、Thinking模式等高级功能</p>
+                </div>
+
+                <div class="alert alert-info" style="margin-bottom: 25px;">
+                    <span>💡</span>
+                    <div>
+                        <strong>使用提示：</strong>
+                        模型名加 <code style="background: var(--surface-2); padding: 2px 6px; border-radius: 3px;">-memory</code> 后缀自动启用记忆增强 |
+                        API Key留空则使用用户请求中的Key
+                    </div>
+                </div>
+
+                <div class="route-cards" id="model-routes-container">
+                    <!-- 动态生成的卡片 -->
+                </div>
+                
+                <div style="margin-top: 25px; display: flex; gap: 12px;">
+                    <button class="btn btn-success" onclick="saveModelRoutes()">💾 保存所有配置</button>
+                    <button class="btn" onclick="loadModelRoutes()">🔄 重新加载</button>
+                </div>
+            </div>
+
+            <!-- 记忆管理页面 -->
+            <div id="memory" class="page">
+                <div class="page-header">
+                    <h2>记忆管理</h2>
+                    <p>管理日记、节点、待处理摘要和索引</p>
+                </div>
+
+                <!-- 待处理摘要（智能会话分割） -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>📋 待处理会话（智能分割）</h3>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-sm btn-success" onclick="consolidateAllPending()">🚀 智能汇总</button>
+                            <button class="btn btn-sm" onclick="loadPendingStats()">🔄 刷新</button>
+                        </div>
+                    </div>
+                    <div class="alert alert-info" style="margin-bottom: 15px;">
+                        <span>💡</span>
+                        <div>
+                            系统会检测<strong>睡眠间隔</strong>（长时间无对话）自动划分"清醒周期"。<br>
+                            每个会话代表一个完整的活跃期，汇总时会生成独立的日记。<br>
+                            <strong>绿色</strong> = 已结束的会话（可汇总） | <strong>蓝色</strong> = 进行中的会话
+                        </div>
+                    </div>
+                    
+                    <!-- 睡眠间隔配置 -->
+                    <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 15px; padding: 12px; background: var(--surface-2); border-radius: 8px;">
+                        <span style="color: var(--text-dim);">⏰ 睡眠间隔阈值：</span>
+                        <input type="number" id="sleep-gap-hours" class="form-input" style="width: 80px;" value="6" min="1" max="24" step="0.5">
+                        <span style="color: var(--text-dim);">小时</span>
+                        <button class="btn btn-sm" onclick="savePendingConfig()">保存</button>
+                        <span style="color: var(--text-dim); font-size: 0.8rem; margin-left: auto;">超过此时间无对话则视为"睡眠"</span>
+                    </div>
+                    
+                    <!-- 汇总提示词配置 -->
+                    <div class="collapsible" style="margin-bottom: 15px;">
+                        <div class="collapsible-header" onclick="toggleCollapsible(this.parentElement)">
+                            <span>📝 汇总提示词配置</span>
+                            <span class="collapsible-toggle">▼</span>
+                        </div>
+                        <div class="collapsible-content">
+                            <div class="form-group">
+                                <label class="form-label">新建日记提示词（无现有日记时使用）</label>
+                                <textarea id="pending-consolidate-prompt" class="form-input" rows="10" placeholder="留空使用默认"></textarea>
+                                <div class="form-hint">变量：{content} = 对话摘要内容</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">合并日记提示词（当天已有日记时使用）</label>
+                                <textarea id="pending-merge-prompt" class="form-input" rows="10" placeholder="留空使用默认"></textarea>
+                                <div class="form-hint">变量：{existing_content} = 现有日记内容，{content} = 新摘要内容</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">🔧 汇总+节点提示词（使用工具调用模式）</label>
+                                <textarea id="pending-consolidate-with-tools-prompt" class="form-input" rows="15" placeholder="留空使用默认"></textarea>
+                                <div class="form-hint">
+                                    用于"汇总+节点"模式，LLM会使用工具创建/更新节点。<br>
+                                    变量：{content} = 对话摘要内容<br>
+                                    ⚠️ 提示词需要包含工具使用说明，引导LLM正确调用 create_node 等工具
+                                </div>
+                            </div>
+                            <button class="btn btn-success" onclick="savePendingPromptConfig()">💾 保存提示词</button>
+                        </div>
+                    </div>
+                    
+                    <div id="pending-stats">
+                        <div class="loading"><span class="spinner"></span> 加载中...</div>
+                    </div>
+                </div>
+
+                <!-- 已归档会话 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>📦 已归档会话（已汇总）</h3>
+                        <button class="btn btn-sm" onclick="loadArchivedSessions()">🔄 刷新</button>
+                    </div>
+                    <div class="alert alert-info" style="margin-bottom: 15px;">
+                        <span>💡</span>
+                        <div>
+                            这些会话已经被汇总成日记并归档。如果需要重新汇总（例如汇总效果不满意），可以<strong>恢复</strong>到待处理列表。
+                        </div>
+                    </div>
+                    <div id="archived-sessions">
+                        <p style="color: var(--text-dim);">点击"刷新"按钮加载已归档会话</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>最近日记</h3>
+                        <button class="btn btn-sm btn-primary" onclick="loadRecentDiaries()">🔄 刷新</button>
+                    </div>
+                    <div id="recent-diaries">
+                        <div class="loading"><span class="spinner"></span> 加载中...</div>
+                    </div>
+                </div>
+
+                <!-- 节点管理 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>📦 节点管理</h3>
+                        <div style="display: flex; gap: 10px;">
+                            <select id="node-type-filter" class="form-select" style="width: 120px;" onchange="loadNodes(this.value)">
+                                <option value="">全部类型</option>
+                                <option value="人物">👤 人物</option>
+                                <option value="地点">📍 地点</option>
+                                <option value="事物">📦 事物</option>
+                                <option value="概念">💡 概念</option>
+                                <option value="事件">📅 事件</option>
+                            </select>
+                            <button class="btn btn-sm btn-success" onclick="showCreateNodeDialog()">✨ 新建节点</button>
+                            <button class="btn btn-sm" onclick="loadNodes()">🔄 刷新</button>
+                        </div>
+                    </div>
+                    <div id="nodes-list">
+                        <p style="color: var(--text-dim);">点击"刷新"按钮加载节点列表</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>搜索记忆</h3>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <input type="text" id="search-query" class="form-input" placeholder="输入搜索关键词..." style="flex: 1;">
+                        <button class="btn btn-primary" onclick="searchMemories()">🔍 搜索</button>
+                    </div>
+                    <div id="search-results"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>索引管理</h3>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-primary" onclick="rebuildIndex()">🔄 重建索引</button>
+                    </div>
+                    <div id="index-status" style="margin-top: 15px;"></div>
+                </div>
+            </div>
+
+            <!-- 备份恢复页面 -->
+            <div id="backup" class="page">
+                <div class="page-header">
+                    <h2>备份恢复</h2>
+                    <p>管理记忆库备份</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>创建备份</h3>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button class="btn btn-success" onclick="createBackup()">📦 创建备份</button>
+                        <span id="backup-status" style="color: var(--text-dim);"></span>
+                    </div>
+                </div>
+
+                <!-- 上传恢复 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>📤 上传恢复</h3>
+                    </div>
+                    <div class="alert alert-warning" style="margin-bottom: 15px;">
+                        <span>⚠️</span>
+                        <div>上传备份文件后可选择直接恢复。恢复操作将覆盖当前所有数据！</div>
+                    </div>
+                    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                        <input type="file" id="backup-upload-file" accept=".zip" style="flex: 1; min-width: 200px;">
+                        <label style="display: flex; align-items: center; gap: 5px; color: var(--text-dim);">
+                            <input type="checkbox" id="backup-upload-restore" checked>
+                            上传后直接恢复
+                        </label>
+                        <button class="btn btn-primary" onclick="uploadBackup()">📤 上传</button>
+                    </div>
+                    <div id="upload-status" style="margin-top: 10px; color: var(--text-dim);"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>现有备份</h3>
+                        <button class="btn btn-sm" onclick="loadBackups()">🔄 刷新</button>
+                    </div>
+                    <div id="backups-list">
+                        <div class="loading"><span class="spinner"></span> 加载中...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 总结生成页面 -->
+            <div id="summary" class="page">
+                <div class="page-header">
+                    <h2>📝 总结生成</h2>
+                    <p>自动生成周/月/季度总结，支持自定义提示词和模型</p>
+                </div>
+
+                <!-- 缺失总结检测 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>⚠️ 缺失的总结</h3>
+                        <button class="btn btn-sm btn-primary" onclick="checkMissingSummaries()">🔍 检测</button>
+                    </div>
+                    <div id="missing-summaries">
+                        <p style="color: var(--text-dim);">点击"检测"按钮查看需要生成的总结</p>
+                    </div>
+                </div>
+
+                <!-- 手动生成 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>✨ 手动生成总结</h3>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
+                        <div class="form-group">
+                            <label class="form-label">总结类型</label>
+                            <select id="summary-type" class="form-select" onchange="updateSummaryIdentifier()">
+                                <option value="weekly">周总结</option>
+                                <option value="monthly">月总结</option>
+                                <option value="quarterly">季度总结</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">标识符</label>
+                            <input type="text" id="summary-identifier" class="form-input" placeholder="2025-W52">
+                            <div class="form-hint" id="identifier-hint">格式：2025-W52</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">使用模型</label>
+                            <input type="text" id="summary-model" class="form-input" placeholder="留空使用默认">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">自定义提示词（留空使用默认）</label>
+                        <textarea id="summary-prompt" class="form-input" rows="4" placeholder="可自定义生成提示词..."></textarea>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button class="btn btn-success" onclick="generateSummary()">🚀 生成总结</button>
+                        <span id="generate-status" style="color: var(--text-dim);"></span>
+                    </div>
+                </div>
+
+                <!-- 生成结果预览 -->
+                <div class="card" id="summary-result-card" style="display: none;">
+                    <div class="card-header">
+                        <h3>📄 生成结果</h3>
+                    </div>
+                    <div id="summary-result" style="white-space: pre-wrap; font-family: inherit; line-height: 1.8;"></div>
+                </div>
+
+                <!-- 提示词配置 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>⚙️ 默认提示词配置</h3>
+                        <button class="btn btn-sm" onclick="loadSummaryConfig()">🔄 加载</button>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div class="form-group">
+                            <label class="form-label">默认模型</label>
+                            <input type="text" id="cfg-summary-model" class="form-input" value="deepseek-chat">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">
+                                <input type="checkbox" id="cfg-summary-retry" checked style="margin-right: 8px;">
+                                启用 API 调用重试
+                            </label>
+                            <div class="form-hint">网络错误或 API 限流时自动重试</div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+                        <div class="form-group">
+                            <label class="form-label">最大重试次数</label>
+                            <input type="number" id="cfg-summary-max-retries" class="form-input" value="3" min="0" max="10">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">基础延迟 (秒)</label>
+                            <input type="number" id="cfg-summary-base-delay" class="form-input" value="1.0" step="0.5" min="0.5" max="30">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">最大延迟 (秒)</label>
+                            <input type="number" id="cfg-summary-max-delay" class="form-input" value="30" min="1" max="120">
+                        </div>
+                    </div>
+                    
+                    <div class="collapsible">
+                        <div class="collapsible-header" onclick="toggleCollapsible(this.parentElement)">
+                            <span>📅 周总结提示词</span>
+                            <span class="collapsible-toggle">▼</span>
+                        </div>
+                        <div class="collapsible-content">
+                            <textarea id="cfg-weekly-prompt" class="form-input" rows="8" placeholder="留空使用系统默认"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="collapsible">
+                        <div class="collapsible-header" onclick="toggleCollapsible(this.parentElement)">
+                            <span>📆 月总结提示词</span>
+                            <span class="collapsible-toggle">▼</span>
+                        </div>
+                        <div class="collapsible-content">
+                            <textarea id="cfg-monthly-prompt" class="form-input" rows="8" placeholder="留空使用系统默认"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="collapsible">
+                        <div class="collapsible-header" onclick="toggleCollapsible(this.parentElement)">
+                            <span>🗂️ 季度总结提示词</span>
+                            <span class="collapsible-toggle">▼</span>
+                        </div>
+                        <div class="collapsible-content">
+                            <textarea id="cfg-quarterly-prompt" class="form-input" rows="8" placeholder="留空使用系统默认"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 15px;">
+                        <button class="btn btn-success" onclick="saveSummaryConfig()">💾 保存配置</button>
+                    </div>
+                </div>
+
+                <!-- 已有总结列表 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>📚 已有总结</h3>
+                        <button class="btn btn-sm" onclick="loadExistingSummaries()">🔄 刷新</button>
+                    </div>
+                    <div id="existing-summaries">
+                        <div class="loading"><span class="spinner"></span> 加载中...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RAG 语义搜索页面 -->
+            <div id="rag" class="page">
+                <div class="page-header">
+                    <h2>🔮 RAG 语义搜索</h2>
+                    <p>基于向量嵌入的语义搜索，可找到与查询语义相关但不含关键词的内容</p>
+                </div>
+
+                <!-- RAG 状态 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>📊 RAG 状态</h3>
+                        <button class="btn btn-sm" onclick="loadRagStats()">🔄 刷新</button>
+                    </div>
+                    <div id="rag-stats">
+                        <div class="loading"><span class="spinner"></span> 加载中...</div>
+                    </div>
+                </div>
+
+                <!-- RAG 配置 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>⚙️ RAG 配置</h3>
+                    </div>
+                    
+                    <div class="alert alert-info" style="margin-bottom: 20px;">
+                        <span>💡</span>
+                        <div>
+                            RAG 使用 <strong>SiliconFlow</strong> 的嵌入 API 将记忆内容向量化。<br>
+                            启用后，Agent 可以使用 <code>rag_search</code> 工具进行语义搜索。
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="cfg-rag-enabled" style="margin-right: 8px;">
+                            启用 RAG 语义搜索
+                        </label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">SiliconFlow API Key</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="password" id="cfg-rag-api-key" class="form-input" placeholder="sk-..." style="flex: 1;">
+                            <button class="btn btn-sm" onclick="togglePassword('cfg-rag-api-key')">👁️</button>
+                        </div>
+                        <div class="form-hint">从 https://siliconflow.cn 获取 API Key</div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div class="form-group">
+                            <label class="form-label">嵌入模型</label>
+                            <input type="text" id="cfg-rag-model" class="form-input" value="Qwen/Qwen3-Embedding-8B">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">API 地址</label>
+                            <input type="text" id="cfg-rag-url" class="form-input" value="https://api.siliconflow.cn/v1/embeddings">
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
+                        <div class="form-group">
+                            <label class="form-label">分块大小</label>
+                            <input type="number" id="cfg-rag-chunk-size" class="form-input" value="500">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">块重叠</label>
+                            <input type="number" id="cfg-rag-chunk-overlap" class="form-input" value="50">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">返回数量 (Top K)</label>
+                            <input type="number" id="cfg-rag-top-k" class="form-input" value="5">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">相似度阈值</label>
+                            <input type="number" id="cfg-rag-threshold" class="form-input" value="0.3" step="0.1" min="0" max="1">
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-primary" onclick="loadRagConfig()">🔄 重新加载</button>
+                        <button class="btn btn-success" onclick="saveRagConfig()">💾 保存配置</button>
+                    </div>
+                </div>
+
+                <!-- 索引管理 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>📚 索引管理</h3>
+                    </div>
+                    
+                    <div class="alert alert-warning" style="margin-bottom: 15px;">
+                        <span>⚠️</span>
+                        <div>
+                            重建索引会对所有日记、节点、总结进行向量化处理。<br>
+                            这可能需要几分钟时间，并消耗一定的 API 配额。
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button class="btn btn-primary" onclick="rebuildRagIndex()">🔄 重建向量索引</button>
+                        <span id="rag-rebuild-status" style="color: var(--text-dim);"></span>
+                    </div>
+                </div>
+
+                <!-- 语义搜索测试 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>🔍 语义搜索测试</h3>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <input type="text" id="rag-search-query" class="form-input" placeholder="输入查询内容（描述你想找的记忆）..." style="flex: 1;">
+                        <select id="rag-search-type" class="form-select" style="width: 150px;">
+                            <option value="">全部类型</option>
+                            <option value="diary">日记</option>
+                            <option value="node">节点</option>
+                            <option value="summary">总结</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="ragSearch()">🔍 搜索</button>
+                    </div>
+                    
+                    <div id="rag-search-results"></div>
+                </div>
+            </div>
+
+            <!-- Graphiti 时序知识图谱页面 -->
+            <div id="graphiti" class="page">
+                <div class="page-header">
+                    <h2>🔗 Graphiti 时序知识图谱</h2>
+                    <p>配置 Graphiti 后端、LLM、检索策略，实现时序查询和多跳关系检索</p>
+                </div>
+
+                <!-- 启用开关 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>⚙️ 基本设置</h3>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="cfg-graphiti-enabled" style="margin-right: 8px;">
+                            启用 Graphiti 时序知识图谱
+                        </label>
+                        <div class="form-hint">启用后，对话记忆会同时索引到 Graphiti，支持时序查询和多跳关系检索</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">图数据库后端</label>
+                        <select id="cfg-graphiti-backend" class="form-select" onchange="toggleGraphitiBackend(this.value)">
+                            <option value="kuzu" selected>Kuzu（嵌入式，推荐开发）</option>
+                            <option value="neo4j">Neo4j（生产环境）</option>
+                        </select>
+                    </div>
+                    
+                    <div id="kuzu-settings">
+                        <div class="form-group">
+                            <label class="form-label">Kuzu 数据库路径</label>
+                            <input type="text" id="cfg-kuzu-path" class="form-input" value="./lifebook/.graphiti.kuzu">
+                        </div>
+                    </div>
+                    
+                    <div id="neo4j-settings" style="display: none;">
+                        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 15px;">
+                            <div class="form-group">
+                                <label class="form-label">Neo4j URI</label>
+                                <input type="text" id="cfg-neo4j-uri" class="form-input" value="bolt://localhost:7687">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">用户名</label>
+                                <input type="text" id="cfg-neo4j-user" class="form-input" value="neo4j">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">密码</label>
+                                <input type="password" id="cfg-neo4j-pass" class="form-input">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LLM 配置 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>🤖 LLM 配置（实体抽取用）</h3>
+                    </div>
+                    <div class="alert alert-warning" style="margin-bottom: 15px;">
+                        <span>⚠️</span>
+                        <div>
+                            Graphiti 需要支持 <strong>Structured Output</strong> 的 LLM。<br>
+                            推荐：OpenAI GPT-4o、GPT-4o-mini、Gemini 2.0
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 15px;">
+                        <div class="form-group">
+                            <label class="form-label">API Base URL（留空使用 OpenAI 默认）</label>
+                            <input type="text" id="cfg-graphiti-llm-url" class="form-input" placeholder="https://api.openai.com/v1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">API Key</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="password" id="cfg-graphiti-llm-key" class="form-input" placeholder="sk-...">
+                                <button class="btn btn-sm" onclick="togglePassword('cfg-graphiti-llm-key')">👁️</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div class="form-group">
+                            <label class="form-label">主模型</label>
+                            <input type="text" id="cfg-graphiti-model" class="form-input" value="gpt-4o-mini">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">小模型（简单任务）</label>
+                            <input type="text" id="cfg-graphiti-small-model" class="form-input" value="gpt-4o-mini">
+                        </div>
+                    </div>
+                    
+                    <h4 style="margin: 15px 0 10px; color: var(--accent);">📊 Embedding 配置</h4>
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 15px;">
+                        <div class="form-group">
+                            <label class="form-label">Embedding API Base URL（留空使用 LLM 的 URL）</label>
+                            <input type="text" id="cfg-graphiti-embed-url" class="form-input" placeholder="https://api.openai.com/v1/embeddings">
+                            <div class="form-hint">可以使用与 LLM 不同的 Embedding 服务</div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Embedding API Key（留空使用 LLM 的 Key）</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="password" id="cfg-graphiti-embed-key" class="form-input" placeholder="留空使用 LLM Key">
+                                <button class="btn btn-sm" onclick="togglePassword('cfg-graphiti-embed-key')">👁️</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div class="form-group">
+                            <label class="form-label">Embedding 模型</label>
+                            <input type="text" id="cfg-graphiti-embed-model" class="form-input" value="text-embedding-3-small">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Embedding 维度</label>
+                            <input type="number" id="cfg-graphiti-embed-dim" class="form-input" value="1536">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="cfg-graphiti-reranker" style="margin-right: 8px;">
+                            启用 Reranker（提升检索精度）
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 检索策略 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>🔍 检索策略</h3>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                        <div class="form-group">
+                            <label class="form-label">检索策略</label>
+                            <select id="cfg-graphiti-strategy" class="form-select">
+                                <option value="auto">自动判断（推荐）</option>
+                                <option value="simple">简单检索（单次）</option>
+                                <option value="iterative">迭代检索（MemR3 风格）</option>
+                            </select>
+                            <div class="form-hint">自动模式根据问题复杂度选择策略</div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">最大迭代次数</label>
+                            <input type="number" id="cfg-graphiti-max-iter" class="form-input" value="3" min="1" max="10">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">最少证据数量</label>
+                            <input type="number" id="cfg-graphiti-min-evidence" class="form-input" value="2" min="1" max="10">
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px;">
+                        <div class="form-group">
+                            <label class="form-label">语义相似度阈值</label>
+                            <input type="number" id="cfg-graphiti-sim-score" class="form-input" value="0.4" step="0.1" min="0" max="1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">MMR 多样性参数</label>
+                            <input type="number" id="cfg-graphiti-mmr" class="form-input" value="0.5" step="0.1" min="0" max="1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">默认结果数</label>
+                            <input type="number" id="cfg-graphiti-limit" class="form-input" value="10" min="1" max="50">
+                        </div>
+                        <div class="form-group" style="display: flex; align-items: flex-end;">
+                            <label class="form-label">
+                                <input type="checkbox" id="cfg-graphiti-include-edges" checked style="margin-right: 8px;">
+                                包含关系边
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 成本控制 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>💰 成本控制</h3>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                        <div class="form-group">
+                            <label class="form-label">每日 Token 限额</label>
+                            <input type="number" id="cfg-graphiti-daily-limit" class="form-input" value="100000">
+                            <div class="form-hint">超过 80% 时会警告</div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">并发限制</label>
+                            <input type="number" id="cfg-graphiti-semaphore" class="form-input" value="10" min="1" max="50">
+                            <div class="form-hint">防止 LLM 429 错误</div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">复杂查询阈值（字符数）</label>
+                            <input type="number" id="cfg-graphiti-complex-threshold" class="form-input" value="50">
+                            <div class="form-hint">超过此长度才可能用迭代检索</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Token 使用量统计 -->
+                    <div style="margin-top: 15px; padding: 12px; background: var(--surface-2); border-radius: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: var(--text-dim);">📊 今日 Token 使用量</span>
+                            <button class="btn btn-sm" onclick="refreshTokenUsage()">🔄 刷新</button>
+                        </div>
+                        <div id="graphiti-token-usage" style="margin-top: 10px;">
+                            <div style="display: flex; gap: 20px;">
+                                <span>已用: <strong id="graphiti-used-tokens">--</strong></span>
+                                <span>限额: <strong id="graphiti-limit-tokens">100,000</strong></span>
+                                <span>剩余: <strong id="graphiti-remain-tokens">--</strong></span>
+                            </div>
+                            <div style="margin-top: 8px; height: 6px; background: var(--surface-3); border-radius: 3px; overflow: hidden;">
+                                <div id="graphiti-usage-bar" style="height: 100%; width: 0%; background: var(--success); transition: width 0.3s;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 同步设置 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>🔄 同步设置</h3>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="cfg-graphiti-sync-conv" checked style="margin-right: 8px;">
+                            索引对话记录到 Graphiti
+                        </label>
+                        <div class="form-hint">每轮对话自动提取实体和关系</div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 15px; margin-top: 15px; flex-wrap: wrap;">
+                        <button class="btn btn-primary" onclick="syncMarkdownToGraphiti()">📤 同步 Markdown → Graphiti</button>
+                        <button class="btn btn-success" onclick="syncNodesWithoutLLM()">📦 一键同步已有节点</button>
+                        <button class="btn btn-warning" onclick="rebuildGraphitiIndex()">🔄 重建 Graphiti 索引</button>
+                    </div>
+                    <div class="alert alert-info" style="margin-top: 10px;">
+                        <span>💡</span>
+                        <div>
+                            <strong>一键同步已有节点</strong>：直接将 LifeBook 中的 nodes/*.md 节点同步到 Graphiti，不使用 LLM 抽取，速度快且无 Token 消耗。
+                        </div>
+                    </div>
+                    
+                    <!-- 同步控制面板（常时显示） -->
+                    <div id="sync-control-panel" style="padding: 15px; background: var(--surface-2); border-radius: 8px; margin-top: 15px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <span id="sync-status-text">⚪ 空闲</span>
+                            <div id="sync-control-buttons">
+                                <button class="btn btn-sm btn-warning" onclick="pauseSync()" id="btn-pause-sync" style="display: none;">⏸️ 暂停</button>
+                                <button class="btn btn-sm btn-success" onclick="resumeSync()" id="btn-resume-sync" style="display: none;">▶️ 继续</button>
+                                <button class="btn btn-sm btn-danger" onclick="stopSync()" id="btn-stop-sync" style="display: none;">⏹️ 停止</button>
+                            </div>
+                        </div>
+                        <div style="margin-bottom: 8px;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-dim);">
+                                <span id="sync-current-file">--</span>
+                                <span id="sync-progress-text">0 / 0</span>
+                            </div>
+                            <div style="height: 8px; background: var(--surface-3); border-radius: 4px; overflow: hidden; margin-top: 5px;">
+                                <div id="sync-progress-bar" style="height: 100%; width: 0%; background: var(--accent); transition: width 0.3s;"></div>
+                            </div>
+                        </div>
+                        <div style="font-size: 0.8rem; color: var(--text-dim);">
+                            <span>📅 日记: <strong id="sync-diary-count">0</strong></span>
+                            <span style="margin-left: 15px;">📦 节点: <strong id="sync-node-count">0</strong></span>
+                            <span style="margin-left: 15px;">❌ 失败: <strong id="sync-failed-count">0</strong></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 搜索测试 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>🔍 搜索测试</h3>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <input type="text" id="graphiti-test-query" class="form-input" placeholder="输入测试查询..." style="flex: 1;">
+                        <button class="btn btn-primary" onclick="testGraphitiSearch()">🔍 搜索</button>
+                    </div>
+                    <div id="graphiti-test-result"></div>
+                </div>
+
+                <!-- Graphiti 图谱可视化 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>🕸️ 时序知识图谱可视化</h3>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-sm btn-success" onclick="showCreateGraphitiNodeDialog()">✨ 新建节点</button>
+                            <button class="btn btn-sm btn-success" onclick="showCreateEdgeDialog()">🔗 新建边</button>
+                            <button class="btn btn-sm" onclick="fitGraphitiView()">📐 适应视图</button>
+                            <button class="btn btn-sm btn-primary" onclick="refreshGraphitiGraph()">🔄 刷新图谱</button>
+                        </div>
+                    </div>
+                    <div class="alert alert-info" style="margin-bottom: 15px;">
+                        <span>💡</span>
+                        <div>
+                            此图谱展示 Graphiti 中的实体节点和关系边。<br>
+                            <strong>点击</strong>节点/边查看详情并编辑 | <strong>双击</strong>节点聚焦放大 | <strong>拖拽</strong>节点调整位置
+                        </div>
+                    </div>
+                    <div id="graphiti-graph-container" style="height: 500px; background: var(--surface-1); border-radius: 8px; position: relative;">
+                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--text-dim);">
+                            点击"刷新图谱"加载 Graphiti 知识图谱
+                        </div>
+                    </div>
+                    <div id="graphiti-graph-stats" style="margin-top: 10px; color: var(--text-dim); font-size: 0.85rem;"></div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-bottom: 40px;">
+                    <button class="btn btn-primary" onclick="loadGraphitiConfig()">🔄 重新加载</button>
+                    <button class="btn btn-success" onclick="saveGraphitiConfig()">💾 保存配置</button>
+                </div>
+            </div>
+
+            <!-- 知识图谱页面 -->
+            <div id="graph" class="page">
+                <div class="page-header">
+                    <h2>🕸️ 知识图谱</h2>
+                    <p>可视化探索记忆中的实体关系</p>
+                </div>
+
+                <!-- 工具栏 -->
+                <div class="card" style="padding: 15px; margin-bottom: 20px;">
+                    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                        <span style="color: var(--text-dim);">类型过滤：</span>
+                        <select id="graph-type-filter" class="form-select" style="width: 150px;" onchange="filterByType(this.value)">
+                            <option value="all">全部类型</option>
+                            <option value="人物">👤 人物</option>
+                            <option value="地点">📍 地点</option>
+                            <option value="事物">📦 事物</option>
+                            <option value="概念">💡 概念</option>
+                            <option value="事件">📅 事件</option>
+                        </select>
+                        <button class="btn btn-sm btn-success" onclick="showCreateNodeDialog()">✨ 新建节点</button>
+                        <button class="btn btn-sm" onclick="fitGraphView()">📐 适应视图</button>
+                        <button class="btn btn-sm btn-primary" onclick="refreshGraph()">🔄 刷新</button>
+                        <div id="graph-stats" style="margin-left: auto; display: flex; gap: 15px; color: var(--text-dim); font-size: 0.85rem;">
+                            <!-- 统计信息会动态填充 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 图谱容器 -->
+                <div class="card" style="padding: 0; overflow: hidden;">
+                    <div id="graph-container" style="height: 600px; background: var(--surface-1);"></div>
+                </div>
+
+                <!-- 节点详情面板 -->
+                <div id="graph-detail-panel" class="card" style="display: none; margin-top: 20px;">
+                    <!-- 详情内容会动态填充 -->
+                </div>
+
+                <!-- 使用提示 -->
+                <div class="alert alert-info" style="margin-top: 20px;">
+                    <span>💡</span>
+                    <div>
+                        <strong>交互说明：</strong>
+                        <ul style="margin: 10px 0 0 0; padding-left: 20px;">
+                            <li><strong>点击</strong>节点查看详情，高亮相邻节点</li>
+                            <li><strong>双击</strong>节点聚焦放大</li>
+                            <li><strong>拖拽</strong>节点调整位置</li>
+                            <li><strong>滚轮</strong>缩放视图</li>
+                            <li>右上角按钮可以导航和适应视图</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 额外挂载页面 -->
+            <div id="extra" class="page">
+                <div class="page-header">
+                    <h2>📎 额外挂载</h2>
+                    <p>自定义永久记忆文件，可在所有记忆前后插入内容</p>
+                </div>
+
+                <!-- 启用开关 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>⚙️ 启用设置</h3>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="extra-mount-enabled" style="margin-right: 8px;">
+                            启用额外挂载
+                        </label>
+                        <div class="form-hint">启用后，会在记忆内容前后插入对应的 md 文件内容</div>
+                    </div>
+                    <div id="extra-status" style="margin-top: 10px;"></div>
+                </div>
+
+                <!-- 前置挂载 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>📄 前置挂载（prefix.md）</h3>
+                        <button class="btn btn-sm btn-success" onclick="saveExtraPrefix()">💾 保存</button>
+                    </div>
+                    <div class="alert alert-info" style="margin-bottom: 15px;">
+                        <span>💡</span>
+                        <div>
+                            此内容会插入到<strong>系统提示词后、所有记忆之前</strong>。<br>
+                            适合放置：永久性的角色设定补充、需要最高优先级的指令。
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <textarea id="extra-prefix-content" class="form-input" style="min-height: 300px; font-family: monospace;" placeholder="在这里输入前置挂载内容..."></textarea>
+                    </div>
+                    <div id="extra-prefix-status" style="color: var(--text-dim); font-size: 0.85rem;"></div>
+                </div>
+
+                <!-- 后置挂载 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>📄 后置挂载（suffix.md）</h3>
+                        <button class="btn btn-sm btn-success" onclick="saveExtraSuffix()">💾 保存</button>
+                    </div>
+                    <div class="alert alert-info" style="margin-bottom: 15px;">
+                        <span>💡</span>
+                        <div>
+                            此内容会插入到<strong>所有记忆之后</strong>。<br>
+                            适合放置：额外的提醒事项、补充指令、注意事项。
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <textarea id="extra-suffix-content" class="form-input" style="min-height: 300px; font-family: monospace;" placeholder="在这里输入后置挂载内容..."></textarea>
+                    </div>
+                    <div id="extra-suffix-status" style="color: var(--text-dim); font-size: 0.85rem;"></div>
+                </div>
+
+                <!-- 操作按钮 -->
+                <div style="display: flex; gap: 10px; margin-bottom: 40px;">
+                    <button class="btn btn-primary" onclick="loadExtraMount()">🔄 重新加载</button>
+                    <button class="btn btn-success" onclick="saveAllExtra()">💾 全部保存</button>
+                </div>
+            </div>
+
+            <!-- 消息编排页面 -->
+            <div id="orchestrator" class="page">
+                <div class="page-header">
+                    <h2>📝 消息编排器</h2>
+                    <p>拖拽排序，自由控制发送给模型的消息结构，支持伪造对话历史</p>
+                </div>
+
+                <!-- 启用开关 -->
+                <div class="card" style="margin-bottom: 20px;">
+                    <div class="card-header">
+                        <h3>⚙️ 启用设置</h3>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" style="display: flex; align-items: center; gap: 10px;">
+                            <input type="checkbox" id="orchestrator-enabled" style="width: 18px; height: 18px;" onchange="toggleOrchestratorEnabled()">
+                            <span style="font-size: 1.1rem;">启用消息编排器</span>
+                        </label>
+                        <div class="form-hint">启用后，-memory 和 -record 模式会按照编排序列组织消息结构。关闭时使用传统的上下文注入方式。</div>
+                    </div>
+                    <div id="orchestrator-status" style="margin-top: 10px;"></div>
+                </div>
+
+                <!-- 使用说明 -->
+                <div class="alert alert-info" style="margin-bottom: 20px;">
+                    <span>💡</span>
+                    <div>
+                        <strong>伪造Role原理：</strong>在 system 提示词后注入伪造的 user → assistant 对话，让AI认为它已经"接受"了某个角色设定。<br>
+                        <strong>效果：</strong>消除"助手开场白"，延续伪造历史中的行为模式和语气。
+                    </div>
+                </div>
+
+                <div class="orchestrator-layout-v2">
+                    <!-- 左侧主区域：消息序列 + 预览 -->
+                    <div class="orchestrator-main">
+                        <!-- 消息序列 -->
+                        <div class="panel sequence-panel">
+                            <div class="panel-header">
+                                <h3>📋 消息序列 <small style="color: var(--text-dim);">(拖拽排序)</small></h3>
+                                <div class="panel-actions">
+                                    <button class="btn btn-success btn-sm" onclick="saveSequence('手动保存')">💾 保存</button>
+                                    <button class="btn btn-sm" onclick="loadOrchestratorSequence()">🔄 刷新</button>
+                                </div>
+                            </div>
+                            <div id="orchestrator-sequence" class="sequence-list">
+                                <!-- 动态生成 -->
+                            </div>
+                        </div>
+                        
+                        <!-- 实时预览 -->
+                        <div class="panel preview-panel">
+                            <h3>👁️ 实时预览</h3>
+                            <div id="orchestrator-preview" class="preview-container">
+                                <!-- 动态生成 -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 右侧工具栏 -->
+                    <div class="orchestrator-sidebar">
+                        <!-- 添加组件 -->
+                        <div class="panel compact">
+                            <h3>➕ 添加组件</h3>
+                            <div id="component-palette" class="component-grid">
+                                <!-- 动态生成 -->
+                            </div>
+                        </div>
+                        
+                        <!-- 预设管理 -->
+                        <div class="collapsible open">
+                            <div class="collapsible-header" onclick="toggleCollapsible(this.parentElement)">
+                                <span>📂 预设管理</span>
+                                <span class="collapsible-toggle">▼</span>
+                            </div>
+                            <div class="collapsible-content">
+                                <div id="orchestrator-presets">
+                                    <!-- 动态生成 -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 模型绑定 -->
+                        <div class="collapsible">
+                            <div class="collapsible-header" onclick="toggleCollapsible(this.parentElement)">
+                                <span>🔗 模型绑定</span>
+                                <span class="collapsible-toggle">▼</span>
+                            </div>
+                            <div class="collapsible-content">
+                                <div id="orchestrator-bindings">
+                                    <!-- 动态生成 -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 历史回滚 -->
+                        <div class="collapsible">
+                            <div class="collapsible-header" onclick="toggleCollapsible(this.parentElement)">
+                                <span>⏪ 历史回滚</span>
+                                <span class="collapsible-toggle">▼</span>
+                            </div>
+                            <div class="collapsible-content">
+                                <div id="orchestrator-history">
+                                    <!-- 动态生成 -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 导入导出 -->
+                        <div class="sidebar-actions">
+                            <button class="btn btn-sm" onclick="exportOrchestratorConfig()">📤 导出</button>
+                            <button class="btn btn-sm" onclick="triggerImportConfig()">📥 导入</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 预填充配置 -->
+                <div class="card" style="margin-top: 20px;">
+                    <div class="card-header">
+                        <h3>🎭 预填充配置（Prefill）</h3>
+                        <button class="btn btn-sm btn-success" onclick="savePrefillConfig()">💾 保存</button>
+                    </div>
+                    
+                    <div class="alert alert-info" style="margin-bottom: 15px;">
+                        <span>💡</span>
+                        <div>
+                            <strong>预填充原理：</strong>在用户最后一条消息后插入一个 assistant 消息，替换模型原生思维链。<br>
+                            <strong>Think 标签：</strong>模型输出中 <code>&lt;/think&gt;</code> 之前的内容作为 <code>reasoning_content</code> 返回，之后作为正文。<br>
+                            <strong>使用场景：</strong>让不支持原生 thinking 的模型输出分离的思考内容，或自定义思考开头。
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">预填充内容（留空则不使用预填充）</label>
+                        <textarea id="prefill-content" class="form-input" rows="5" placeholder="<think>&#10;让我思考一下这个问题..."></textarea>
+                        <div class="form-hint">此内容将作为 assistant 消息插入到用户最后一条消息之后。常用于触发模型的思考模式。</div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div class="form-group">
+                            <label class="form-label">Think 结束标签</label>
+                            <input type="text" id="prefill-think-tag" class="form-input" value="</think>" placeholder="</think>">
+                            <div class="form-hint">检测到此标签后，后续内容作为正文输出</div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">启用预填充的模型（每行一个，支持通配符 *）</label>
+                            <textarea id="prefill-model-bindings" class="form-input" rows="3" placeholder="claude-*&#10;gemini-*"></textarea>
+                            <div class="form-hint">仅对这些模型启用预填充。留空则对所有模型禁用。</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 测试发送 -->
+                <div class="card" style="margin-top: 20px;">
+                    <div class="card-header">
+                        <h3>🚀 测试发送</h3>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 200px 1fr auto; gap: 15px; align-items: end;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label">测试模型</label>
+                            <input type="text" id="test-model" class="form-input" placeholder="claude-sonnet-4-memory">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label">测试消息</label>
+                            <input type="text" id="test-message" class="form-input" placeholder="你好，灰魂！">
+                        </div>
+                        <button class="btn btn-success" onclick="testSendMessage()">🚀 发送</button>
+                    </div>
+                    <div id="test-result" style="margin-top: 15px;">
+                        <!-- 测试结果 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 对话管理页面 -->
+            <div id="conversations" class="page">
+                <div class="page-header">
+                    <h2>💬 对话管理</h2>
+                    <p>管理原始对话记录，查看对话历史，总结为日记</p>
+                </div>
+
+                <!-- 统计信息 -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-card-label">📅 今日对话</div>
+                        <div class="stat-card-value" id="conv-stat-today">--</div>
+                        <div class="stat-card-detail">次会话</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-label">💬 今日轮次</div>
+                        <div class="stat-card-value" id="conv-stat-today-turns">--</div>
+                        <div class="stat-card-detail">轮对话</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-label">📚 总对话数</div>
+                        <div class="stat-card-value" id="conv-stat-total">--</div>
+                        <div class="stat-card-detail">次会话</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-label">📈 总轮次</div>
+                        <div class="stat-card-value" id="conv-stat-total-turns">--</div>
+                        <div class="stat-card-detail">轮对话</div>
+                    </div>
+                </div>
+
+                <!-- 日期选择 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>📅 按日期查看</h3>
+                        <button class="btn btn-sm" onclick="loadConversationDates()">🔄 刷新</button>
+                    </div>
+                    <div id="conv-dates-list" style="display: flex; flex-wrap: wrap; gap: 10px;">
+                        <div class="loading"><span class="spinner"></span> 加载中...</div>
+                    </div>
+                </div>
+
+                <!-- 对话列表 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>💬 对话列表</h3>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <select id="conv-days-filter" class="form-select" style="width: 120px;" onchange="loadConversations()">
+                                <option value="7">最近7天</option>
+                                <option value="14">最近14天</option>
+                                <option value="30" selected>最近30天</option>
+                                <option value="90">最近90天</option>
+                            </select>
+                            <button class="btn btn-sm btn-primary" onclick="loadConversations()">🔄 刷新</button>
+                        </div>
+                    </div>
+                    
+                    <!-- 全天时间线入口 - 置顶显示 -->
+                    <div id="day-timeline-entry" style="margin-bottom: 15px; padding: 12px 15px; background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 80%, purple)); border-radius: 8px; text-align: center; display: none;">
+                        <button class="btn" style="background: white; color: var(--accent); font-weight: 600; padding: 8px 20px;" onclick="showDayTimeline()">📅 查看该日全天对话时间线</button>
+                        <span id="day-timeline-date" style="margin-left: 10px; color: white; font-size: 0.9rem;"></span>
+                    </div>
+                    
+                    <div class="alert alert-info" style="margin-bottom: 15px;">
+                        <span>💡</span>
+                        <div>
+                            对话以 <strong>JSONL 格式</strong>保存在 <code>lifebook/conversations/</code> 目录。<br>
+                            可以<strong>查看详情</strong>、<strong>总结为日记</strong>或<strong>删除</strong>对话。
+                        </div>
+                    </div>
+                    
+                    <div id="conv-list">
+                        <div class="loading"><span class="spinner"></span> 加载中...</div>
+                    </div>
+                    
+                    <!-- 分页 -->
+                    <div id="conv-pagination" style="margin-top: 15px; display: flex; justify-content: center; gap: 10px;">
+                    </div>
+                </div>
+
+                <!-- 按日期总结为日记 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>📝 对话 → 日记 总结</h3>
+                    </div>
+                    <div class="alert alert-info" style="margin-bottom: 15px;">
+                        <span>💡</span>
+                        <div>
+                            <strong>日期总结</strong>：将指定日期的全部对话合并后一次性发给 LLM，生成一篇连贯的日记。<br>
+                            <strong>单对话总结</strong>：在对话详情中点击「📝 总结」按钮，也会调用 LLM。<br>
+                            点击「👁️ 预览」可先查看 LLM 生成的内容再决定是否保存。
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label">目标日期</label>
+                            <input type="date" id="conv-batch-date" class="form-input" style="width: 180px;">
+                        </div>
+                        <button class="btn btn-primary" onclick="previewDaySummary()">👁️ 预览</button>
+                        <button class="btn btn-success" onclick="summarizeDayToDiary()">🚀 总结并保存</button>
+                        <label style="display: flex; align-items: center; gap: 5px; color: var(--text-dim); font-size: 0.85rem;">
+                            <input type="checkbox" id="conv-day-append" checked> 追加到现有日记
+                        </label>
+                        <span id="conv-batch-status" style="color: var(--text-dim);"></span>
+                    </div>
+                    
+                    <!-- 预览区 -->
+                    <div id="conv-day-preview" style="display: none; margin-top: 15px;">
+                        <div class="card-header" style="padding: 0 0 10px 0;">
+                            <h4 style="margin: 0;">👁️ 日记预览</h4>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn btn-sm btn-success" onclick="confirmDaySummary()">✅ 确认保存</button>
+                                <button class="btn btn-sm" onclick="closeDayPreview()">✕ 关闭</button>
+                            </div>
+                        </div>
+                        <div id="conv-day-preview-content" style="padding: 12px; background: var(--surface-2); border-radius: 8px; white-space: pre-wrap; max-height: 400px; overflow-y: auto; line-height: 1.7; font-size: 0.9rem;"></div>
+                        <div id="conv-day-preview-stats" style="margin-top: 8px; font-size: 0.8rem; color: var(--text-dim);"></div>
+                    </div>
+                </div>
+
+                <!-- 总结提示词配置 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>⚙️ 对话→日记 总结配置</h3>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-sm" onclick="loadConvDiaryConfig()">🔄 加载</button>
+                            <button class="btn btn-sm btn-success" onclick="saveConvDiaryConfig()">💾 保存</button>
+                        </div>
+                    </div>
+                    <div class="alert alert-info" style="margin-bottom: 15px;">
+                        <span>💡</span>
+                        <div>
+                            此配置控制「对话→日记」的 LLM 总结行为。<br>
+                            留空的字段会回退到「自动总结」或「记忆Agent」的配置。
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 15px;">
+                        <div class="form-group">
+                            <label class="form-label">总结模型（留空回退）</label>
+                            <input type="text" id="cfg-convdiary-model" class="form-input" placeholder="留空使用 auto_summary / agent 模型">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Max Tokens</label>
+                            <input type="number" id="cfg-convdiary-max-tokens" class="form-input" value="8192" min="256" max="65535">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Temperature</label>
+                            <input type="number" id="cfg-convdiary-temperature" class="form-input" value="1" step="0.1" min="0" max="2">
+                        </div>
+                    </div>
+
+                    <div class="collapsible">
+                        <div class="collapsible-header" onclick="toggleCollapsible(this.parentElement)">
+                            <span>📝 单对话总结提示词</span>
+                            <span class="collapsible-toggle">▼</span>
+                        </div>
+                        <div class="collapsible-content">
+                            <textarea id="cfg-convdiary-single-prompt" class="form-input" rows="10" placeholder="留空使用默认提示词。可用变量：{conversation}"></textarea>
+                            <div class="form-hint">用于总结单个对话。变量：<code>{conversation}</code> = 对话内容</div>
+                        </div>
+                    </div>
+
+                    <div class="collapsible">
+                        <div class="collapsible-header" onclick="toggleCollapsible(this.parentElement)">
+                            <span>📅 全天日记总结提示词</span>
+                            <span class="collapsible-toggle">▼</span>
+                        </div>
+                        <div class="collapsible-content">
+                            <textarea id="cfg-convdiary-day-prompt" class="form-input" rows="10" placeholder="留空使用默认提示词。可用变量：{conversations}, {date}"></textarea>
+                            <div class="form-hint">用于将全天对话合并总结为日记。变量：<code>{conversations}</code> = 全天对话, <code>{date}</code> = 日期</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 调试日志页面 -->
+            <div id="debug" class="page">
+                <div class="page-header">
+                    <h2>🔧 调试日志</h2>
+                    <p>查看发给搜索小模型和总结小模型的提示词，方便debug</p>
+                </div>
+
+                <!-- 日志统计 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>📊 日志统计</h3>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-sm btn-danger" onclick="clearDebugLogs()">🗑️ 清空日志</button>
+                            <button class="btn btn-sm" onclick="loadDebugLogs()">🔄 刷新</button>
+                        </div>
+                    </div>
+                    <div id="debug-stats">
+                        <div class="loading"><span class="spinner"></span> 加载中...</div>
+                    </div>
+                </div>
+
+                <!-- 日志过滤 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>📋 提示词日志</h3>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-sm btn-warning" onclick="retryLastSummary()">🔄 重试最后一次总结</button>
+                            <button class="btn btn-sm btn-success" onclick="addTestLog()">🧪 添加测试日志</button>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info" style="margin-bottom: 15px;">
+                        <span>💡</span>
+                        <div>
+                            日志记录时机：<br>
+                            • <strong>搜索Agent</strong>：当你使用 xxx-memory 模式与模型对话时，搜索小模型收到的提示词<br>
+                            • <strong>对话后总结</strong>：对话结束后，总结小模型收到的提示词（需开启自动总结）<br>
+                            • <strong>总结生成</strong>：手动生成周/月/季度总结时的提示词<br>
+                            • <strong>待处理汇总</strong>：将暂存摘要汇总成日记时的提示词<br>
+                            <br>
+                            <strong>如果日志为空</strong>：1. 确保服务器已重启 2. 点击"添加测试日志"验证系统是否正常
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center;">
+                        <span style="color: var(--text-dim);">类型过滤：</span>
+                        <select id="debug-log-type" class="form-select" style="width: 200px;" onchange="loadDebugLogs()">
+                            <option value="">全部类型</option>
+                            <option value="search_agent">🔍 搜索Agent</option>
+                            <option value="post_conversation">💬 对话后总结</option>
+                            <option value="summary_generate">📝 总结生成</option>
+                            <option value="pending_consolidate">📦 待处理汇总</option>
+                        </select>
+                        <span style="color: var(--text-dim);">数量：</span>
+                        <select id="debug-log-limit" class="form-select" style="width: 100px;" onchange="loadDebugLogs()">
+                            <option value="20">20条</option>
+                            <option value="50" selected>50条</option>
+                            <option value="100">100条</option>
+                        </select>
+                    </div>
+                    
+                    <div id="debug-logs-list">
+                        <div class="loading"><span class="spinner"></span> 加载中...</div>
+                    </div>
+                </div>
+
+                <!-- 日志详情弹窗占位 -->
+                <div id="debug-log-modal" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 通知 -->
+    <div id="toast" class="toast"></div>
+
+    <!-- 模块化 JS 文件 -->
+    <script src="/static/js/admin-core.js"></script>
+    <script src="/static/js/admin-routes.js"></script>
+    <script src="/static/js/admin-pending.js"></script>
+    <script src="/static/js/admin-memory.js"></script>
+    <script src="/static/js/admin-config.js"></script>
+    <script src="/static/js/admin-summary.js"></script>
+    <script src="/static/js/admin-rag.js"></script>
+    <script src="/static/js/admin-graph.js"></script>
+    <script src="/static/js/admin-extra.js"></script>
+    <script src="/static/js/admin-orchestrator.js"></script>
+    <script src="/static/js/admin-conversations.js"></script>
+    <script src="/static/js/admin-debug.js"></script>
+    <script src="/static/js/admin-graphiti.js"></script>
+    <script src="/static/js/admin-init.js"></script>
+</body>
+</html>

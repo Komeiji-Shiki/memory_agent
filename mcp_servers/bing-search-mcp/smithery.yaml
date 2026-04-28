@@ -1,0 +1,25 @@
+# Smithery.ai configuration
+startCommand:
+  type: stdio
+  configSchema:
+    # JSON Schema defining the configuration options for the MCP.
+    type: object
+    required:
+      - bingApiKey
+    properties:
+      bingApiKey:
+        type: string
+        description: Bing Search API Key
+  commandFunction:
+    # A function that produces the CLI command to start the MCP on stdio.
+    |-
+    (config) => ({
+      "command": "uv",
+      "args": [
+        "run",
+        "mcp_server_bing"
+      ],
+      "env": {
+        "BING_API_KEY": config.bingApiKey
+      }
+    })
